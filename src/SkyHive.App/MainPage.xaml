@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:SkyHive.App.ViewModels"
+             xmlns:views="clr-namespace:SkyHive.App.Views"
+             x:Class="SkyHive.App.MainPage"
+             x:DataType="vm:MainViewModel"
+             BackgroundColor="{StaticResource BgColor}"
+             Shell.NavBarIsVisible="False"
+             NavigationPage.HasNavigationBar="False">
+
+    <ContentPage.Resources>
+        <OnPlatform x:Key="Mono" x:TypeArguments="x:String">
+            <On Platform="MacCatalyst, iOS" Value="Menlo" />
+            <On Platform="WinUI" Value="Consolas" />
+            <On Platform="Android" Value="monospace" />
+        </OnPlatform>
+    </ContentPage.Resources>
+
+    <Grid x:Name="Root" Padding="14" RowSpacing="12" ColumnSpacing="12"
+          RowDefinitions="Auto,*,210" ColumnDefinitions="300,*,390">
+
+        <!-- ================= HEADER ================= -->
+        <Border x:Name="HeaderPanel" Grid.ColumnSpan="3" Style="{StaticResource Panel}" Padding="14,10">
+            <FlexLayout Wrap="Wrap" AlignItems="Center" JustifyContent="SpaceBetween" AlignContent="Center">
+                <HorizontalStackLayout Spacing="12" Margin="0,4">
+                    <Border StrokeShape="RoundRectangle 10" StrokeThickness="0" HeightRequest="44" WidthRequest="44">
+                        <Image Source="logo.png" Aspect="AspectFill" />
+                    </Border>
+                    <VerticalStackLayout VerticalOptions="Center">
+                        <Label Text="SKYHIVE" TextColor="{StaticResource TextColor}" FontFamily="OpenSansSemibold" FontSize="20" CharacterSpacing="4" />
+                        <Label Text="Sürü Drone Komuta Merkezi · ArduCopter / MAVLink" TextColor="{StaticResource MutedColor}" FontSize="11" />
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Spacing="8" Margin="0,4">
+                    <Border StrokeShape="RoundRectangle 10" Stroke="{StaticResource StrokeColor}" BackgroundColor="{StaticResource CardColor}" Padding="8,0" IsEnabled="{Binding IsDisconnected}">
+                        <Picker ItemsSource="{Binding ModeOptions}" SelectedIndex="{Binding ModeIndex}" TextColor="{StaticResource TextColor}" FontSize="13" WidthRequest="190" BackgroundColor="Transparent" />
+                    </Border>
+                    <Border StrokeShape="RoundRectangle 10" Stroke="{StaticResource StrokeColor}" BackgroundColor="{StaticResource CardColor}" Padding="4,0" IsEnabled="{Binding IsDisconnected}">
+                        <HorizontalStackLayout Spacing="2">
+                            <Button Text="−" Clicked="OnCountMinus" Style="{StaticResource ChipButton}" BackgroundColor="Transparent" BorderWidth="0" WidthRequest="30" />
+                            <Label Text="{Binding DroneCountText}" TextColor="{StaticResource TextColor}" VerticalOptions="Center" FontSize="13" WidthRequest="64" HorizontalTextAlignment="Center" />
+                            <Button Text="+" Clicked="OnCountPlus" Style="{StaticResource ChipButton}" BackgroundColor="Transparent" BorderWidth="0" WidthRequest="30" />
+                        </HorizontalStackLayout>
+                    </Border>
+                    <Entry Text="{Binding Host}" Placeholder="host" IsVisible="{Binding IsSitl}" IsEnabled="{Binding IsDisconnected}" Style="{StaticResource Field}" WidthRequest="120" />
+                    <Entry Text="{Binding BasePort}" Placeholder="port" IsVisible="{Binding IsSitl}" IsEnabled="{Binding IsDisconnected}" Style="{StaticResource Field}" WidthRequest="70" Keyboard="Numeric" />
+                    <Button x:Name="ConnectButton" Text="{Binding ConnectText}" Clicked="OnConnect" Style="{StaticResource PrimaryButton}" WidthRequest="150" />
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Spacing="22" Margin="0,4">
+                    <VerticalStackLayout>
+                        <Label Text="HAVADA" Style="{StaticResource StatLabel}" />
+                        <Label Text="{Binding AirborneStat}" Style="{StaticResource StatValue}" TextColor="{StaticResource AccentColor}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout>
+                        <Label Text="HEDEF" Style="{StaticResource StatLabel}" />
+                        <Label Text="{Binding TargetStat}" Style="{StaticResource StatValue}" TextColor="{StaticResource DangerColor}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout>
+                        <Label Text="ORT. BATARYA" Style="{StaticResource StatLabel}" />
+                        <Label Text="{Binding BatteryStat}" Style="{StaticResource StatValue}" TextColor="{StaticResource GoodColor}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout>
+                        <Label Text="LİNK" Style="{StaticResource StatLabel}" />
+                        <Label Text="{Binding LinkStat}" Style="{StaticResource StatValue}" />
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+            </FlexLayout>
+        </Border>
+
+        <!-- ================= NARROW TABS ================= -->
+        <HorizontalStackLayout x:Name="TabBar" IsVisible="False" Spacing="6" HorizontalOptions="Center">
+            <Button Text="Filo" ClassId="fleet" Clicked="OnTab" Style="{StaticResource ChipButton}" />
+            <Button Text="Kamera &amp; Komut" ClassId="ops" Clicked="OnTab" Style="{StaticResource ChipButton}" />
+            <Button Text="Konsol" ClassId="console" Clicked="OnTab" Style="{StaticResource ChipButton}" />
+        </HorizontalStackLayout>
+
+        <!-- ================= FLEET ================= -->
+        <Border x:Name="FleetPanel" Grid.Row="1" Grid.RowSpan="2" Style="{StaticResource Panel}" Padding="10">
+            <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                <Grid ColumnDefinitions="*,Auto" Padding="4,0">
+                    <Label Text="FİLO" Style="{StaticResource SectionTitle}" />
+                    <Label Grid.Column="1" Text="{Binding LinkStat}" TextColor="{StaticResource MutedColor}" FontSize="11" />
+                </Grid>
+                <CollectionView Grid.Row="1" ItemsSource="{Binding Drones}" SelectionMode="Single" SelectedItem="{Binding Selected, Mode=TwoWay}">
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout Padding="10,40" Spacing="6">
+                            <Label Text="Henüz bağlantı yok" TextColor="{StaticResource TextColor}" HorizontalTextAlignment="Center" FontFamily="OpenSansSemibold" />
+                            <Label Text="Dahili simülasyon ya da ArduPilot SITL seçip BAĞLAN'a basın." TextColor="{StaticResource MutedColor}" HorizontalTextAlignment="Center" FontSize="12" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DroneItemViewModel">
+                            <Grid Padding="0,0,0,8">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="CommonStates">
+                                        <VisualState Name="Normal" />
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="Transparent" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <Border BackgroundColor="{StaticResource CardColor}" Stroke="{Binding CardStroke}" StrokeThickness="1.4" StrokeShape="RoundRectangle 12" Padding="0">
+                                    <Grid ColumnDefinitions="4,*">
+                                        <BoxView Color="{Binding Accent}" />
+                                        <VerticalStackLayout Grid.Column="1" Padding="10,8" Spacing="3">
+                                            <Grid ColumnDefinitions="Auto,Auto,*">
+                                                <Label Text="{Binding Name}" TextColor="{Binding Accent}" FontFamily="OpenSansSemibold" FontSize="15" />
+                                                <Ellipse Grid.Column="1" Fill="{Binding StatusColor}" WidthRequest="8" HeightRequest="8" Margin="8,0,0,0" VerticalOptions="Center" />
+                                                <Label Grid.Column="2" Text="{Binding Mode}" TextColor="{Binding ModeColor}" FontSize="11" FontFamily="OpenSansSemibold" HorizontalTextAlignment="End" VerticalOptions="Center" />
+                                            </Grid>
+                                            <Label Text="{Binding Task}" TextColor="{StaticResource TextColor}" FontSize="12" LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding Telemetry}" TextColor="{StaticResource MutedColor}" FontSize="11" FontFamily="{StaticResource Mono}" />
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,2,0,0">
+                                                <ProgressBar Progress="{Binding BatteryLevel}" ProgressColor="{Binding BatteryColor}" VerticalOptions="Center" />
+                                                <Label Grid.Column="1" Text="{Binding Battery}" TextColor="{StaticResource MutedColor}" FontSize="10" FontFamily="{StaticResource Mono}" />
+                                            </Grid>
+                                            <Label Text="{Binding Gps}" TextColor="{StaticResource MutedColor}" FontSize="10" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Border>
+
+        <!-- ================= MAP ================= -->
+        <Border x:Name="MapPanel" Grid.Row="1" Grid.Column="1" Style="{StaticResource Panel}" Padding="0">
+            <Grid>
+                <views:TacticalMapView x:Name="Map" />
+                <VerticalStackLayout Spacing="6" Margin="12" HorizontalOptions="Start" VerticalOptions="Start">
+                    <Button Text="+" Clicked="OnZoomIn" Style="{StaticResource ActionButton}" WidthRequest="38" FontSize="18" />
+                    <Button Text="−" Clicked="OnZoomOut" Style="{StaticResource ActionButton}" WidthRequest="38" FontSize="18" />
+                    <Button Text="◎" Clicked="OnCenter" Style="{StaticResource ActionButton}" WidthRequest="38" ToolTipProperties.Text="Sürüyü ortala" />
+                    <Button x:Name="FollowButton" Text="⌖" Clicked="OnFollow" Style="{StaticResource ActionButton}" WidthRequest="38" ToolTipProperties.Text="Seçili drone'u takip et" />
+                    <Button x:Name="TapGoButton" Text="➤" Clicked="OnTapGo" Style="{StaticResource ActionButton}" WidthRequest="38" ToolTipProperties.Text="Dokun-git: haritaya dokununca seçili drone oraya uçar" />
+                </VerticalStackLayout>
+                <Border HorizontalOptions="End" VerticalOptions="End" Margin="12" Padding="10,6" BackgroundColor="#CC0F172A" Stroke="{StaticResource StrokeColor}" StrokeShape="RoundRectangle 8">
+                    <HorizontalStackLayout Spacing="12">
+                        <Label Text="◆ hedef" TextColor="{StaticResource DangerColor}" FontSize="11" />
+                        <Label Text="◆ aday" TextColor="{StaticResource WarnColor}" FontSize="11" />
+                        <Label Text="▭ kamera izi" TextColor="{StaticResource AccentColor}" FontSize="11" />
+                        <Label Text="┅ rota" TextColor="{StaticResource TextColor}" FontSize="11" />
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ================= RIGHT: CAMERA + COMMANDS + TARGETS ================= -->
+        <Border x:Name="RightPanel" Grid.Row="1" Grid.RowSpan="2" Grid.Column="2" Style="{StaticResource Panel}" Padding="12">
+            <ScrollView>
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="{Binding CameraTitle}" Style="{StaticResource SectionTitle}" VerticalOptions="Center" />
+                        <Label Grid.Column="1" x:Name="VisionStat" TextColor="{StaticResource MutedColor}" FontSize="10" FontFamily="{StaticResource Mono}" VerticalOptions="Center" />
+                    </Grid>
+                    <HorizontalStackLayout x:Name="ModeChips" Spacing="5">
+                        <Button Text="RGB" ClassId="Rgb" Clicked="OnCameraMode" Style="{StaticResource ChipButton}" />
+                        <Button Text="KENAR" ClassId="Edges" Clicked="OnCameraMode" Style="{StaticResource ChipButton}" />
+                        <Button Text="TERMAL" ClassId="Thermal" Clicked="OnCameraMode" Style="{StaticResource ChipButton}" />
+                        <Button Text="BİTKİ" ClassId="Vegetation" Clicked="OnCameraMode" Style="{StaticResource ChipButton}" />
+                        <Button Text="TESPİT" ClassId="Detection" Clicked="OnCameraMode" Style="{StaticResource ChipButton}" />
+                    </HorizontalStackLayout>
+                    <Border StrokeShape="RoundRectangle 12" Stroke="{StaticResource StrokeColor}" Padding="0" HeightRequest="262">
+                        <views:CameraView x:Name="Camera" />
+                    </Border>
+
+                    <Label Text="SÜRÜ KOMUTLARI" Style="{StaticResource SectionTitle}" Margin="0,4,0,0" />
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="6">
+                        <Button Text="▲  Kalkış" ClassId="kalk 20" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Column="1" Text="▼  İniş" ClassId="in" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Column="2" Text="⌂  Eve Dön" ClassId="eve dön" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="1" Text="❚❚  Dur" ClassId="dur" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="V  Formasyon" ClassId="formasyon v 12" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="1" Grid.Column="2" Text="━  Hat" ClassId="formasyon hat 10" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="2" Text="◯  Çember" ClassId="formasyon çember 12" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="2" Grid.Column="1" Text="▦  Izgara" ClassId="formasyon ızgara 10" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="2" Grid.Column="2" Text="↻  Yörünge" ClassId="yörünge 45" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="3" Text="▤  Alan Tara" ClassId="tara 320x240" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="3" Grid.Column="1" Text="⬚  Devriye" ClassId="devriye 140" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="3" Grid.Column="2" Text="◎  Takip" ClassId="takip" Clicked="OnQuick" Style="{StaticResource ActionButton}" />
+                        <Button Grid.Row="4" Grid.ColumnSpan="3" Text="★  OTONOM DEMO SENARYOSU" ClassId="demo" Clicked="OnQuick" Style="{StaticResource PrimaryButton}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                        <Label Text="TESPİT EDİLEN HEDEFLER" Style="{StaticResource SectionTitle}" />
+                        <Label Grid.Column="1" Text="dokun → takip" TextColor="{StaticResource MutedColor}" FontSize="10" />
+                    </Grid>
+                    <CollectionView ItemsSource="{Binding Targets}" HeightRequest="190" SelectionMode="None">
+                        <CollectionView.EmptyView>
+                            <Label Text="Henüz tespit yok — sürüyü alan taramasına gönderin." TextColor="{StaticResource MutedColor}" FontSize="12" Padding="4,10" />
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TargetItemViewModel">
+                                <Grid Padding="0,0,0,6">
+                                    <Border BackgroundColor="{StaticResource CardColor}" Stroke="{StaticResource StrokeColor}" StrokeShape="RoundRectangle 10" Padding="10,7">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnTargetTapped" CommandParameter="{Binding Id}" />
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                            <Border BackgroundColor="{Binding Badge}" StrokeShape="RoundRectangle 6" StrokeThickness="0" Padding="7,2" VerticalOptions="Center">
+                                                <Label Text="{Binding Label}" TextColor="White" FontFamily="OpenSansSemibold" FontSize="12" />
+                                            </Border>
+                                            <Label Grid.Column="1" Text="{Binding Detail}" TextColor="{StaticResource TextColor}" FontSize="11" VerticalOptions="Center" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Border>
+
+        <!-- ================= CONSOLE ================= -->
+        <Border x:Name="ConsolePanel" Grid.Row="2" Grid.Column="1" Style="{StaticResource Panel}" Padding="12,10">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Label Text="KOMUT KONSOLU" Style="{StaticResource SectionTitle}" VerticalOptions="Center" />
+                    <ScrollView Grid.Column="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="12,0,0,0">
+                        <HorizontalStackLayout Spacing="5">
+                            <Button Text="yardım" ClassId="yardım" Clicked="OnQuick" Style="{StaticResource ChipButton}" />
+                            <Button Text="kalk d1-d3 25" ClassId="kalk d1-d3 25" Clicked="OnQuick" Style="{StaticResource ChipButton}" />
+                            <Button Text="formasyon kol 8" ClassId="formasyon kol 8" Clicked="OnQuick" Style="{StaticResource ChipButton}" />
+                            <Button Text="git d1 150 80 30" ClassId="git d1 150 80 30" Clicked="OnQuick" Style="{StaticResource ChipButton}" />
+                            <Button Text="hız 10" ClassId="hız 10" Clicked="OnQuick" Style="{StaticResource ChipButton}" />
+                            <Button Text="hedefler" ClassId="hedefler" Clicked="OnQuick" Style="{StaticResource ChipButton}" />
+                        </HorizontalStackLayout>
+                    </ScrollView>
+                </Grid>
+                <Border Grid.Row="1" BackgroundColor="#070B14" Stroke="{StaticResource StrokeColor}" StrokeShape="RoundRectangle 8" Padding="8,4">
+                    <CollectionView x:Name="ConsoleList" ItemsSource="{Binding Log}" ItemsUpdatingScrollMode="KeepLastItemInView">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:LogItemViewModel">
+                                <Grid ColumnDefinitions="62,64,*" Padding="0,1">
+                                    <Label Text="{Binding Time}" TextColor="#4B5A75" FontSize="11" FontFamily="{StaticResource Mono}" />
+                                    <Label Grid.Column="1" Text="{Binding Source}" TextColor="#7DD3FC" FontSize="11" FontFamily="{StaticResource Mono}" LineBreakMode="TailTruncation" />
+                                    <Label Grid.Column="2" Text="{Binding Message}" TextColor="{Binding Color}" FontSize="11" FontFamily="{StaticResource Mono}" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+                <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Border BackgroundColor="{StaticResource CardColor}" Stroke="{StaticResource StrokeColor}" StrokeShape="RoundRectangle 10" Padding="10,0">
+                        <Entry x:Name="CommandEntry" Text="{Binding CommandText}" Placeholder="›  komut yazın — ör. 'tara 300x200', 'formasyon v 12', 'takip t2'  ·  'yardım'"
+                               TextColor="{StaticResource TextColor}" PlaceholderColor="{StaticResource MutedColor}" BackgroundColor="Transparent"
+                               FontFamily="{StaticResource Mono}" FontSize="13" Completed="OnSend" />
+                    </Border>
+                    <Button Grid.Column="1" Text="GÖNDER" Clicked="OnSend" Style="{StaticResource PrimaryButton}" WidthRequest="100" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

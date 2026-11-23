@@ -1,0 +1,18 @@
+services:
+  sitl:
+    build: .
+    image: skyhive/arducopter-sitl:4.5
+    environment:
+      COUNT: "${COUNT:-5}"
+      HOME_LAT: "40.9925"
+      HOME_LON: "29.1240"
+      SPEEDUP: "1"
+    ports:
+      - "5760:5760"
+      - "5770:5770"
+      - "5780:5780"
+      - "5790:5790"
+      - "5800:5800"
+      - "5810:5810"
+      - "5820:5820"
+      - "5830:5830"

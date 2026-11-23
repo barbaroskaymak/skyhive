@@ -1,0 +1,13 @@
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+*.user
+*.swp
+.DS_Store
+TestResults/
+sitl/**/logs/
+*.tlog
+*.BIN
+eeprom.bin

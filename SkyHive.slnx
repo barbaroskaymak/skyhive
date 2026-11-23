@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SkyHive.App/SkyHive.App.csproj" />
+    <Project Path="src/SkyHive.Core/SkyHive.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SkyHive.Core.Tests/SkyHive.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/SkyHive.Cli/SkyHive.Cli.csproj" />
+  </Folder>
+</Solution>
